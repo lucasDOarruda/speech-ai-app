@@ -34,5 +34,18 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "main": "postcss.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucasDOarruda/speech-ai-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lucasDOarruda/speech-ai-app/issues"
+  },
+  "homepage": "https://github.com/lucasDOarruda/speech-ai-app#readme",
+  "description": ""
 }
