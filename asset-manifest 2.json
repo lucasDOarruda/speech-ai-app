@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/lucasDOarruda/speech-ai-app/static/css/main.6e2340e1.css",
+    "main.js": "/lucasDOarruda/speech-ai-app/static/js/main.0b1803b8.js",
+    "index.html": "/lucasDOarruda/speech-ai-app/index.html",
+    "main.6e2340e1.css.map": "/lucasDOarruda/speech-ai-app/static/css/main.6e2340e1.css.map",
+    "main.0b1803b8.js.map": "/lucasDOarruda/speech-ai-app/static/js/main.0b1803b8.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.6e2340e1.css",
+    "static/js/main.0b1803b8.js"
+  ]
+}
