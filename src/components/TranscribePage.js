@@ -50,6 +50,60 @@ const TranscribePage = () => {
     recognition.start();
   };
 
+  const recordAndSendToAssemblyAI = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
+    const audioChunks = [];
+
+    mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+
+    const audioBlobPromise = new Promise((resolve) => {
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        resolve(audioBlob);
+      };
+    });
+
+    mediaRecorder.start();
+    setListening(true);
+    setTimeout(() => mediaRecorder.stop(), 5000);
+
+    const audioBlob = await audioBlobPromise;
+    setListening(false);
+
+    const uploadRes = await fetch('https://your-server.com/api/upload', {
+      method: 'POST',
+      body: audioBlob,
+    });
+    const { audio_url } = await uploadRes.json();
+
+    const transcriptRes = await fetch('https://your-server.com/api/transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio_url }),
+    });
+
+    const { id } = await transcriptRes.json();
+
+    while (true) {
+      const polling = await fetch(`https://your-server.com/api/transcribe/${id}`);
+      const data = await polling.json();
+
+      if (data.status === 'completed') {
+        if (data.text && data.text.trim().length > 0) {
+          const newLine = { speaker: 'AssemblyAI', text: data.text };
+          setTranscriptLog(prev => [...prev, newLine]);
+        }
+        break;
+      }
+      if (data.status === 'error') {
+        console.error('❌ Error:', data.error);
+        break;
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  };
+
   const handleSaveTranscript = () => {
     const timestamp = new Date().toLocaleString();
     const session = {
@@ -108,6 +162,9 @@ const TranscribePage = () => {
           </button>
           <button onClick={handleStartTranscription} className="rounded-full p-3 text-xl text-white bg-green-600 hover:bg-green-700 transition">
             <FaMicrophone />
+          </button>
+          <button onClick={recordAndSendToAssemblyAI} className="rounded-full px-4 py-2 text-sm bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg">
+            🎧 Record & Analyze
           </button>
         </div>
 
