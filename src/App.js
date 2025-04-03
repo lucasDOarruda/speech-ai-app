@@ -10,7 +10,11 @@ import PracticeExercise from './components/PracticeExercise';
 import ExercisesPage from './components/ExercisesPage';
 import Contact from './components/Contact';
 import ProgressTracking from './components/ProgressTracking';
-import About from './components/About'; // Keep this import only
+import About from './components/About';
+import LoginPage from './components/LoginPage';
+import SignupPage from './components/SignupPage';
+import AuthPage from './components/AuthPage';
+import PrivateRoute from './components/PrivateRoute';
 
 const Practice = () => (
   <div className="bg-white p-6 rounded-2xl shadow-md max-w-3xl mx-auto mt-10">
@@ -35,13 +39,47 @@ function App() {
     <>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/practice" element={<Practice />} />
-        <Route path="/progress" element={<ProgressTracking />} />
-        <Route path="/about" element={<About />} /> {/* This is the About page route */}
+        <Route path="/" element={<AuthPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/dashboard/professional" element={<h2>Welcome, Professional!</h2>} />
+        <Route
+          path="/dashboard/patient"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/practice"
+          element={
+            <PrivateRoute>
+              <Practice />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/progress"
+          element={
+            <PrivateRoute>
+              <ProgressTracking />
+            </PrivateRoute>
+          }
+        />
+        <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/microphone" element={<ExercisesPage />} />
         <Route path="/microphone/:id" element={<PracticeExercise />} />
+        <Route path="*" element={<h2 className="text-center mt-10">404 - Page Not Found</h2>} />
       </Routes>
     </>
   );
