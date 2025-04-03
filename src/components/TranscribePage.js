@@ -17,7 +17,7 @@ const TranscribePage = () => {
   const recognitionRef = useRef(null);
   const sessionsPerPage = 5;
 
-  const fullName = `${name} ${surname}`.trim();
+  const fullName = (name + ' ' + surname).trim();
 
   const initSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -75,14 +75,14 @@ const TranscribePage = () => {
   };
 
   const handleDownload = (session) => {
-    const lines = session.log.map(t => `${t.speaker}: ${t.text}`);
-    const fullText = `Patient: ${session.fullName} (Age: ${session.age})\nDate: ${session.timestamp}\n\n` +
-                     lines.join('\n') + `\n\nComments:\n${session.comments}`;
+    const lines = session.log.map(t => t.speaker + ': ' + t.text);
+    const fullText = 'Patient: ' + session.fullName + ' (Age: ' + session.age + ')\nDate: ' + session.timestamp + '\n\n' +
+                     lines.join('\n') + '\n\nComments:\n' + session.comments;
     const blob = new Blob([fullText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${session.fullName.replace(/ /g, "_")}-session.txt`;
+    a.download = session.fullName.replace(/ /g, "_") + '-session.txt';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -167,37 +167,36 @@ const TranscribePage = () => {
         <p style={{ textAlign: 'center', color: '#9CA3AF' }}>No sessions found.</p>
       )}
 
-      
-    <div style={{
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '1rem',
-      justifyContent: 'center',
-      marginBottom: '1.5rem'
-    }}>
-    {paginatedSessions.map((s, i) => (
-    
-        <div key={i} style={{
-          border: '1px solid #E5E7EB',
-          borderRadius: '12px',
-          padding: '1rem',
-          marginBottom: '1rem',
-          background: '#F0F9FF',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-        }}>
-          <h4 style={{ marginBottom: '0.3rem', color: '#2563EB' }}>{s.fullName} <span style={{ color: '#6B7280' }}>(Age {s.age})</span></h4>
-          <p><strong>Date:</strong> {s.timestamp}</p>
-          <p><strong>Comments:</strong> {s.comments.slice(0, 100)}...</p>
-          <button onClick={() => handleDownload(s)} style={{
-            marginTop: '0.5rem',
-            background: '#2563EB', color: '#fff',
-            padding: '0.4rem 0.8rem',
-            borderRadius: '6px',
-            border: 'none',
-            cursor: 'pointer'
-          }}>⬇️ Download</button>
-        </div>
-      ))}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        justifyContent: 'center',
+        marginBottom: '1.5rem'
+      }}>
+        {paginatedSessions.map((s, i) => (
+          <div key={i} style={{
+            border: '1px solid #E5E7EB',
+            borderRadius: '12px',
+            padding: '1rem',
+            marginBottom: '1rem',
+            background: '#F0F9FF',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+          }}>
+            <h4 style={{ marginBottom: '0.3rem', color: '#2563EB' }}>{s.fullName} <span style={{ color: '#6B7280' }}>(Age {s.age})</span></h4>
+            <p><strong>Date:</strong> {s.timestamp}</p>
+            <p><strong>Comments:</strong> {s.comments.slice(0, 100)}...</p>
+            <button onClick={() => handleDownload(s)} style={{
+              marginTop: '0.5rem',
+              background: '#2563EB', color: '#fff',
+              padding: '0.4rem 0.8rem',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer'
+            }}>⬇️ Download</button>
+          </div>
+        ))}
+      </div>
 
       {totalPages > 1 && (
         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
@@ -218,12 +217,6 @@ const TranscribePage = () => {
           ))}
         </div>
       )}
-    </div>
-  
-
-
-
-
     </div>
   );
 };

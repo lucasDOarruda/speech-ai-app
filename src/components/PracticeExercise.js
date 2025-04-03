@@ -1,6 +1,11 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mic, CheckCircle, XCircle } from 'lucide-react';
+
+const BASE_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:5001'
+  : 'https://speech-ai-app-backend.onrender.com';
 
 const exercises = {
   1: { title: 'S Sound Practice', targetWords: ['Snake', 'Sun', 'Smile'] },
@@ -38,7 +43,6 @@ const PracticeExercise = () => {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    // Start time recording
     const startTime = Date.now();
 
     recognition.onstart = () => {
@@ -51,14 +55,13 @@ const PracticeExercise = () => {
     recognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript.toLowerCase();
 
-      // Ensure that the transcript is not empty or null
       if (!transcript || transcript.trim().length === 0) {
         setMessage('⚠️ No speech detected. Please try again.');
         return;
       }
 
       try {
-        const res = await fetch('http://localhost:5001/chat', {
+        const res = await fetch(`${BASE_URL}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: transcript }),
@@ -69,13 +72,11 @@ const PracticeExercise = () => {
 
         setMessage(feedback);
 
-        // Simple accuracy check: comparison of words (real implementation would involve more advanced logic)
         const correct = exercise.targetWords.some((word) => transcript.includes(word.toLowerCase()));
-        const percentage = correct ? 100 : 0; // Placeholder, you can improve this logic with NLP or other methods
+        const percentage = correct ? 100 : 0;
 
         setAccuracy(percentage);
 
-        // Speak feedback out loud (only if correct or try again)
         const utter = new SpeechSynthesisUtterance(correct ? "Correct pronunciation!" : "Try again.");
         utter.lang = 'en-US';
         window.speechSynthesis.speak(utter);
@@ -92,7 +93,7 @@ const PracticeExercise = () => {
 
     recognition.onend = () => {
       setIsRecording(false);
-      setRecordTime((Date.now() - startTime) / 1000); // Calculate total recording time
+      setRecordTime((Date.now() - startTime) / 1000);
     };
 
     recognition.start();
@@ -113,10 +114,7 @@ const PracticeExercise = () => {
 
         <div className="flex flex-wrap justify-center gap-4">
           {exercise.targetWords.map((word, index) => (
-            <span
-              key={index}
-              className="bg-yellow-100 text-yellow-800 px-5 py-2 rounded-full text-base font-medium"
-            >
+            <span key={index} className="bg-yellow-100 text-yellow-800 px-5 py-2 rounded-full text-base font-medium">
               {word}
             </span>
           ))}
@@ -142,9 +140,7 @@ const PracticeExercise = () => {
           )}
         </div>
 
-        {message && (
-          <div className="text-lg font-semibold text-gray-800">{message}</div>
-        )}
+        {message && <div className="text-lg font-semibold text-gray-800">{message}</div>}
 
         {accuracy !== null && (
           <div className="mt-4">
@@ -158,10 +154,7 @@ const PracticeExercise = () => {
         )}
 
         <div>
-          <button
-            onClick={() => navigate('/microphone')}
-            className="text-sm text-blue-500 underline"
-          >
+          <button onClick={() => navigate('/microphone')} className="text-sm text-blue-500 underline">
             ← Back to Exercises
           </button>
         </div>
