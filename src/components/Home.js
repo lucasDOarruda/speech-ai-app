@@ -35,10 +35,10 @@ const Home = () => {
           color="from-blue-100 to-yellow-100"
         />
         <FeatureCard
-          title="🏠 Home"
-          desc="Quickly return to your starting point and reset."
-          onClick={() => navigate('/')}
-          color="from-white to-yellow-50"
+          title="📝 Sessions Transcribe"
+          desc="Transcribe your spoken sessions in real time and export as PDF."
+          onClick={() => navigate('/transcribe')}
+          color="from-white to-yellow-100"
         />
         <FeatureCard
           title="ℹ️ About"

@@ -15,6 +15,7 @@ import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import AuthPage from './components/AuthPage';
 import PrivateRoute from './components/PrivateRoute';
+import TranscribePage from './components/TranscribePage';
 
 const Practice = () => (
   <div className="bg-white p-6 rounded-2xl shadow-md max-w-3xl mx-auto mt-10">
@@ -79,6 +80,14 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/microphone" element={<ExercisesPage />} />
         <Route path="/microphone/:id" element={<PracticeExercise />} />
+        <Route
+          path="/transcribe"
+          element={
+            <PrivateRoute>
+              <TranscribePage />
+            </PrivateRoute>
+          }
+        />
         <Route path="*" element={<h2 className="text-center mt-10">404 - Page Not Found</h2>} />
       </Routes>
     </>
