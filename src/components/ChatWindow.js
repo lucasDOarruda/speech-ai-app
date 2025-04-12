@@ -1,66 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { db, auth } from '../firebase';
 import {
   collection,
   addDoc,
-  onSnapshot,
   query,
   orderBy,
+  onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
+import { FaComments } from 'react-icons/fa';
 
 const ChatWindow = ({ chatId }) => {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [newMsg, setNewMsg] = useState('');
+  const scrollRef = useRef();
 
   useEffect(() => {
     if (!chatId) return;
 
     const q = query(
       collection(db, 'chats', chatId, 'messages'),
-      orderBy('createdAt')
+      orderBy('timestamp')
     );
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => doc.data());
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setMessages(msgs);
     });
 
     return unsubscribe;
   }, [chatId]);
 
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   const sendMessage = async () => {
-    if (!input.trim()) return;
-
+    if (!newMsg.trim()) return;
     await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      text: newMsg,
       senderId: auth.currentUser.uid,
-      text: input,
-      createdAt: serverTimestamp(),
+      timestamp: serverTimestamp(),
     });
-
-    setInput('');
+    setNewMsg('');
   };
 
   return (
-    <div className="p-4 border rounded bg-white shadow-md max-w-3xl mx-auto">
-      <div className="h-64 overflow-y-scroll border p-2 mb-4">
-        {messages.map((msg, i) => (
-          <div key={i} className={`mb-2 ${msg.senderId === auth.currentUser.uid ? 'text-right' : 'text-left'}`}>
-            <div className="text-sm">{msg.text}</div>
-            <div className="text-xs text-gray-400">{msg.senderId}</div>
+    <div className="w-full h-[400px] border rounded shadow p-2 flex flex-col bg-white">
+      <div className="flex-1 overflow-y-auto space-y-2 px-2">
+        {messages.map((msg, index) => (
+          <div
+            key={msg.id}
+            className={`flex ${
+              msg.senderId === auth.currentUser.uid ? 'justify-end' : 'justify-start'
+            }`}
+          >
+            <div
+              className={`max-w-xs px-4 py-2 rounded-lg text-white text-sm flex items-center gap-2 ${
+                msg.senderId === auth.currentUser.uid
+                  ? 'bg-indigo-500'
+                  : 'bg-gray-300 text-black'
+              }`}
+              style={{
+                wordBreak: 'break-word',
+                maxWidth: '75%',
+              }}
+            >
+              <FaComments className="text-xs" />
+              {msg.text}
+            </div>
           </div>
         ))}
+        <div ref={scrollRef} />
       </div>
-      <div className="flex gap-2">
+
+      <div className="flex mt-2">
         <input
-          className="flex-1 p-2 border rounded"
+          type="text"
           placeholder="Type message..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          value={newMsg}
+          onChange={(e) => setNewMsg(e.target.value)}
+          className="flex-1 border rounded-l px-4 py-2 text-sm focus:outline-none"
         />
         <button
-          className="bg-blue-500 text-white px-4 rounded"
           onClick={sendMessage}
+          className="bg-indigo-500 text-white px-4 py-2 rounded-r text-sm hover:bg-indigo-600"
         >
           Send
         </button>

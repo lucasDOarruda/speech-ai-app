@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase';
-import { collection, query, where, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  getDoc,
+  setDoc,
+} from 'firebase/firestore';
 import ChatWindow from './ChatWindow';
+import { FaComments } from 'react-icons/fa';
 
 const getOrCreateChatId = async (clientId, therapistId) => {
   const chatId = [clientId, therapistId].sort().join('_');
@@ -21,41 +30,64 @@ const getOrCreateChatId = async (clientId, therapistId) => {
 const ClientDashboard = () => {
   const [therapists, setTherapists] = useState([]);
   const [chatId, setChatId] = useState(null);
+  const [selectedTherapistEmail, setSelectedTherapistEmail] = useState('');
 
   useEffect(() => {
     const q = query(collection(db, 'users'), where('role', '==', 'therapist'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      setTherapists(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTherapists(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     });
 
-    return unsub;
+    return unsubscribe;
   }, []);
 
-  const startChat = async (therapistId) => {
+  const startChat = async (therapistId, email) => {
     const chatId = await getOrCreateChatId(auth.currentUser.uid, therapistId);
     setChatId(chatId);
+    setSelectedTherapistEmail(email);
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4 text-center">🧠 Your Study Space</h2>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-gray-100 p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">👩‍⚕️ Available Therapists</h3>
-          {therapists.map(t => (
-            <div key={t.id} onClick={() => startChat(t.id)} className="p-2 bg-white rounded mb-2 cursor-pointer hover:bg-gray-200">
-              {t.email}
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-gray-100 p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">📋 Assigned Exercises</h3>
-          <p>No exercises assigned yet.</p>
-        </div>
+    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-yellow-50 to-white">
+      {/* Sidebar */}
+      <div className="w-1/4 bg-white p-4 shadow-md">
+        <h2 className="text-xl font-semibold mb-4 text-blue-800 flex items-center gap-2">
+          <FaComments /> Available Therapists
+        </h2>
+        {therapists.map((t) => (
+          <div
+            key={t.id}
+            onClick={() => startChat(t.id, t.email)}
+            className={`p-2 rounded cursor-pointer hover:bg-blue-100 ${
+              chatId && selectedTherapistEmail === t.email
+                ? 'bg-blue-200 font-semibold'
+                : ''
+            }`}
+          >
+            {t.email}
+          </div>
+        ))}
       </div>
 
-      {chatId && <ChatWindow chatId={chatId} />}
+      {/* Chat Area */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        <h2 className="text-3xl font-bold text-center mb-6 text-pink-700">
+          🧠 Your Study Space
+        </h2>
+
+        {chatId ? (
+          <div className="bg-white rounded shadow p-4">
+            <h3 className="text-lg font-semibold text-blue-600 mb-2">
+              Chatting with: {selectedTherapistEmail}
+            </h3>
+            <ChatWindow chatId={chatId} />
+          </div>
+        ) : (
+          <div className="text-center text-gray-600">
+            Select a therapist to start chatting.
+          </div>
+        )}
+      </div>
     </div>
   );
 };

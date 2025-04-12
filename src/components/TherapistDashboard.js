@@ -19,6 +19,7 @@ import {
   FaVideo,
 } from 'react-icons/fa';
 
+// Get or create a chat ID between therapist and client
 const getOrCreateChatId = async (clientId, therapistId) => {
   const chatId = [clientId, therapistId].sort().join('_');
   const chatRef = doc(db, 'chats', chatId);
@@ -40,6 +41,7 @@ const TherapistDashboard = () => {
   const [selectedClientEmail, setSelectedClientEmail] = useState('');
   const navigate = useNavigate();
 
+  // Load all clients from Firestore
   useEffect(() => {
     const q = query(collection(db, 'users'), where('role', '==', 'client'));
     const unsub = onSnapshot(q, (snapshot) => {
@@ -49,6 +51,7 @@ const TherapistDashboard = () => {
     return unsub;
   }, []);
 
+  // Start or resume chat
   const startChat = async (clientId, email) => {
     const chatId = await getOrCreateChatId(clientId, auth.currentUser.uid);
     setChatId(chatId);
@@ -58,7 +61,7 @@ const TherapistDashboard = () => {
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 via-yellow-50 to-white">
       {/* Sidebar */}
-      <div className="w-1/4 bg-white p-4 shadow-md">
+      <div className="w-1/4 bg-white p-4 shadow-md overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4 text-blue-800 flex items-center gap-2">
           <FaComments /> Connected Clients
         </h2>
@@ -77,7 +80,7 @@ const TherapistDashboard = () => {
         ))}
       </div>
 
-      {/* Main Chat and Tools Area */}
+      {/* Main Area */}
       <div className="flex-1 p-6 overflow-y-auto">
         <h2 className="text-3xl font-bold text-center mb-6 text-blue-700">
           👩‍⚕️ Therapist Dashboard
@@ -97,7 +100,7 @@ const TherapistDashboard = () => {
           </div>
         )}
 
-        {/* Tool Cards */}
+        {/* Feature Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
           <ToolCard
             icon={<FaVideo />}
@@ -125,6 +128,7 @@ const TherapistDashboard = () => {
   );
 };
 
+// Feature Card Component
 const ToolCard = ({ icon, title, onClick }) => (
   <div
     onClick={onClick}
