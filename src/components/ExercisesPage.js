@@ -1,15 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { db } from '../firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+} from 'firebase/firestore';
 
 const ExercisesPage = () => {
-  const navigate = useNavigate();
-  const [customExercises, setCustomExercises] = useState([]);
-  const [form, setForm] = useState({ title: '', description: '', videoUrl: '', file: null });
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState('');
+  const [assignedExercises, setAssignedExercises] = useState([]);
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    videoUrl: '',
+    file: null,
+  });
 
+  // Fetch all clients from Firestore
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('customExercises')) || [];
-    setCustomExercises(saved);
+    const fetchClients = async () => {
+      const q = query(collection(db, 'users'), where('role', '==', 'client'));
+      const snapshot = await getDocs(q);
+      const clientList = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setClients(clientList);
+    };
+    fetchClients();
   }, []);
+
+  // Listen to assigned exercises for the selected client
+  useEffect(() => {
+    if (!selectedClient) return;
+
+    const ref = collection(db, 'users', selectedClient, 'assignedExercises');
+    const unsubscribe = onSnapshot(ref, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAssignedExercises(data);
+    });
+
+    return unsubscribe;
+  }, [selectedClient]);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -21,26 +62,23 @@ const ExercisesPage = () => {
     }
   };
 
-  const handleAddExercise = () => {
-    if (!form.title || !form.description || !form.videoUrl) return;
+  const handleAssign = async () => {
+    if (!selectedClient || !form.title || !form.description || !form.videoUrl) return;
 
     const newExercise = {
       ...form,
-      id: Date.now(),
-      gptFeedback: `Let's practice the sound in: ${form.title}. Remember, focus on clarity!`,
-      targetWords: form.description.split(/[\s,]+/)
+      createdAt: new Date(),
+      gptFeedback: `Let's practice the sound in: ${form.title}. Focus on clear pronunciation.`,
+      targetWords: form.description.split(/[\s,]+/),
     };
 
-    const updated = [...customExercises, newExercise];
-    setCustomExercises(updated);
-    localStorage.setItem('customExercises', JSON.stringify(updated));
+    await addDoc(collection(db, 'users', selectedClient, 'assignedExercises'), newExercise);
     setForm({ title: '', description: '', videoUrl: '', file: null });
   };
 
-  const handleDeleteExercise = (id) => {
-    const updated = customExercises.filter(ex => ex.id !== id);
-    setCustomExercises(updated);
-    localStorage.setItem('customExercises', JSON.stringify(updated));
+  const handleDelete = async (exerciseId) => {
+    if (!selectedClient) return;
+    await deleteDoc(doc(db, 'users', selectedClient, 'assignedExercises', exerciseId));
   };
 
   const formatYouTubeUrl = (url) => {
@@ -53,109 +91,110 @@ const ExercisesPage = () => {
     return url;
   };
 
-  const sSoundExercise = {
-    id: 1,
-    title: 'S Sound Practice',
-    description: 'Practice words with the "S" sound like "Snake", "Sun", "Smile".',
-    videoUrl: '/videos/s-sound-demo.mp4'
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <h1 className="text-3xl font-bold text-center text-blue-700 mb-8">Speech Exercises</h1>
+      <h1 className="text-3xl font-bold text-center text-blue-700 mb-8">Assign Speech Exercise</h1>
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Form on the Left */}
-        <div className="md:col-span-1">
-          <div className="p-6 bg-white rounded-xl border shadow space-y-4">
-            <h3 className="text-lg font-semibold text-blue-700">Add New Custom Exercise</h3>
-            <input
-              name="title"
-              placeholder="Exercise Title"
-              value={form.title}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-            />
-            <textarea
-              name="description"
-              placeholder="Exercise Description (use target words here)"
-              value={form.description}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-            />
-            <input
-              name="videoUrl"
-              placeholder="Video URL (YouTube or mp4)"
-              value={form.videoUrl}
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-            />
-            <input
-              name="file"
-              type="file"
-              accept="video/mp4"
-              onChange={handleChange}
-              className="w-full p-2 border rounded"
-            />
-            {form.videoUrl && (
-              <div className="mt-4">
-                {form.videoUrl.includes('youtube.com') || form.videoUrl.includes('youtu.be') ? (
-                  <iframe
-                    width="100%"
-                    height="240"
-                    src={formatYouTubeUrl(form.videoUrl)}
-                    title="Live preview"
-                    frameBorder="0"
-                    allowFullScreen
-                    className="rounded-xl"
-                  />
-                ) : (
-                  <video src={form.videoUrl} controls className="w-full rounded-xl">
-                    Video preview not supported.
-                  </video>
-                )}
-              </div>
-            )}
-            <button
-              onClick={handleAddExercise}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Add Exercise
-            </button>
-          </div>
-        </div>
+      <div className="max-w-2xl mx-auto bg-white shadow p-6 rounded-xl space-y-4">
+        <h2 className="text-lg font-semibold text-blue-700">Add New Custom Exercise</h2>
 
-        {/* Exercises on the Right */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Default S Sound Practice Card */}
-          <div
-            className="cursor-pointer p-6 rounded-xl bg-gradient-to-br from-yellow-100 to-blue-100 shadow hover:shadow-md transition"
-            onClick={() => navigate(`/exercise/${sSoundExercise.id}`)}
-          >
-            <h2 className="text-xl font-semibold text-blue-800">{sSoundExercise.title}</h2>
-            <p className="text-gray-700 mt-1">{sSoundExercise.description}</p>
-          </div>
-
-          {/* Custom Exercises */}
-          {customExercises.map((ex) => (
-            <div
-              key={ex.id}
-              className="p-6 rounded-xl bg-gradient-to-br from-yellow-100 to-blue-100 shadow hover:shadow-md transition relative"
-            >
-              <div onClick={() => navigate(`/exercise/${ex.id}`)} className="cursor-pointer">
-                <h2 className="text-xl font-semibold text-blue-800">{ex.title}</h2>
-                <p className="text-gray-700 mt-1">{ex.description}</p>
-              </div>
-              <button
-                onClick={() => handleDeleteExercise(ex.id)}
-                className="absolute top-2 right-2 text-sm text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded"
-              >
-                ✕ Delete
-              </button>
-            </div>
+        <select
+          value={selectedClient}
+          onChange={(e) => setSelectedClient(e.target.value)}
+          className="w-full p-2 border rounded"
+        >
+          <option value="">Select Client</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>
+              {client.email}
+            </option>
           ))}
-        </div>
+        </select>
+
+        <input
+          name="title"
+          placeholder="Exercise Title"
+          value={form.title}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+
+        <textarea
+          name="description"
+          placeholder="Exercise Description (use target words)"
+          value={form.description}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+
+        <input
+          name="videoUrl"
+          placeholder="Video URL (YouTube or mp4)"
+          value={form.videoUrl}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+
+        <input
+          name="file"
+          type="file"
+          accept="video/mp4"
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+
+        <button
+          onClick={handleAssign}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Assign Exercise
+        </button>
       </div>
+
+      {/* 🧠 Assigned Exercise List */}
+      {selectedClient && (
+        <div className="max-w-5xl mx-auto mt-10 space-y-4">
+          <h2 className="text-2xl font-semibold text-blue-800 mb-4">Assigned Exercises</h2>
+
+          {assignedExercises.length === 0 ? (
+            <p className="text-gray-500 text-center">No exercises assigned to this client yet.</p>
+          ) : (
+            assignedExercises.map((ex) => (
+              <div
+                key={ex.id}
+                className="bg-white shadow-md p-6 rounded-xl border relative space-y-2"
+              >
+                <h3 className="text-lg font-semibold text-blue-700">{ex.title}</h3>
+                <p className="text-gray-700">{ex.description}</p>
+
+                {ex.videoUrl && (
+                  <div className="mt-2">
+                    {ex.videoUrl.includes('youtube.com') || ex.videoUrl.includes('youtu.be') ? (
+                      <iframe
+                        width="100%"
+                        height="240"
+                        src={formatYouTubeUrl(ex.videoUrl)}
+                        title={ex.title}
+                        allowFullScreen
+                        className="rounded-xl"
+                      />
+                    ) : (
+                      <video src={ex.videoUrl} controls className="w-full rounded-xl" />
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleDelete(ex.id)}
+                  className="absolute top-2 right-2 text-sm text-red-500 hover:text-red-700 border border-red-300 px-3 py-1 rounded"
+                >
+                  ✕ Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 };

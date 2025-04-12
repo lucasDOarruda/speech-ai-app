@@ -1,6 +1,9 @@
+// PracticeExercise.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mic, CheckCircle, XCircle } from 'lucide-react';
+import { db, auth } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const BASE_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:5001'
@@ -11,8 +14,8 @@ const defaultExercises = {
     title: 'S Sound Practice',
     targetWords: ['Snake', 'Sun', 'Smile'],
     videoUrl: '/videos/s-sound-demo.mp4',
-    gptFeedback: 'Try saying the /s/ sound clearly. Trap your tongue behind your teeth!'
-  }
+    gptFeedback: 'Try saying the /s/ sound clearly. Trap your tongue behind your teeth!',
+  },
 };
 
 const PracticeExercise = () => {
@@ -21,21 +24,39 @@ const PracticeExercise = () => {
 
   const [exercise, setExercise] = useState(null);
   const [message, setMessage] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [accuracy, setAccuracy] = useState(null);
-  const [recordTime, setRecordTime] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
-    // Try to load custom exercise from localStorage first
-    const customList = JSON.parse(localStorage.getItem('customExercises')) || [];
-    const found = customList.find((ex) => ex.id.toString() === id);
-    if (found) {
-      setExercise(found);
-    } else {
-      setExercise(defaultExercises[id]);
-    }
+    const fetchExercise = async () => {
+      if (parseInt(id) === 1) {
+        setExercise(defaultExercises[1]);
+        return;
+      }
+
+      // Try to get from Firestore
+      const uid = auth.currentUser?.uid || localStorage.getItem('uid');
+      if (uid) {
+        const docRef = doc(db, 'users', uid, 'assignedExercises', id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setExercise(docSnap.data());
+          return;
+        }
+      }
+
+      // Fallback to localStorage
+      const customList = JSON.parse(localStorage.getItem('customExercises')) || [];
+      const found = customList.find((ex) => ex.id.toString() === id);
+      if (found) {
+        setExercise(found);
+      } else {
+        setExercise(null);
+      }
+    };
+
+    fetchExercise();
   }, [id]);
 
   const handleListen = () => {
@@ -50,13 +71,10 @@ const PracticeExercise = () => {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    const startTime = Date.now();
-
     recognition.onstart = () => {
       setIsRecording(true);
       setMessage('');
       setAccuracy(null);
-      setRecordTime(0);
     };
 
     recognition.onresult = async (event) => {
@@ -86,7 +104,6 @@ const PracticeExercise = () => {
         const utter = new SpeechSynthesisUtterance(correct ? 'Correct pronunciation!' : 'Try again.');
         utter.lang = 'en-US';
         window.speechSynthesis.speak(utter);
-
       } catch (err) {
         console.error('AI error:', err);
         setMessage('⚠️ Something went wrong. Please try again.');
@@ -99,7 +116,6 @@ const PracticeExercise = () => {
 
     recognition.onend = () => {
       setIsRecording(false);
-      setRecordTime((Date.now() - startTime) / 1000);
     };
 
     recognition.start();
@@ -110,7 +126,18 @@ const PracticeExercise = () => {
     setMessage('Recording stopped.');
   };
 
-  if (!exercise) return <p className="text-center text-red-500 mt-10">Exercise not found.</p>;
+  const formatYouTubeUrl = (url) => {
+    if (url.includes('watch?v=')) return url.replace('watch?v=', 'embed/');
+    if (url.includes('youtu.be')) {
+      const id = url.split('youtu.be/')[1];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+    return url;
+  };
+
+  if (!exercise) {
+    return <p className="text-center text-red-500 mt-10">Exercise not found.</p>;
+  }
 
   if (showIntro && exercise.videoUrl) {
     const isYouTube = exercise.videoUrl.includes('youtube.com') || exercise.videoUrl.includes('youtu.be');
@@ -124,7 +151,7 @@ const PracticeExercise = () => {
             <iframe
               width="100%"
               height="315"
-              src={exercise.videoUrl.replace('watch?v=', 'embed/')}
+              src={formatYouTubeUrl(exercise.videoUrl)}
               title="Exercise video"
               frameBorder="0"
               allowFullScreen
@@ -161,7 +188,7 @@ const PracticeExercise = () => {
         <div className="flex justify-center gap-4">
           <button
             onClick={handleListen}
-            disabled={isRecording || isListening}
+            disabled={isRecording}
             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition text-base font-medium"
           >
             <Mic size={20} />
@@ -192,7 +219,7 @@ const PracticeExercise = () => {
         )}
 
         <div>
-          <button onClick={() => navigate('/exercises')} className="text-sm text-blue-500 underline">
+          <button onClick={() => navigate(-1)} className="text-sm text-blue-500 underline">
             ← Back to Exercises
           </button>
         </div>

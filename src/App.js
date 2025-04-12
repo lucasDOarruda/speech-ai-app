@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { auth } from './firebase';
 
 import Navbar from './components/Navbar';
 import Home from './components/Home';
@@ -13,12 +14,25 @@ import ClientDashboard from './components/ClientDashboard';
 import TherapistDashboard from './components/TherapistDashboard';
 import TranscribePage from './components/TranscribePage';
 import ExercisesPage from './components/ExercisesPage';
-import PracticeExercise from './components/PracticeExercise';
 import ProgressTracking from './components/ProgressTracking';
 import AssessmentsPage from './components/AssessmentsPage';
 import ChatPage from './components/ChatPage';
 
+import ClientExercisesPage from './components/ClientExercisesPage';
+import ExerciseView from './components/ExerciseView';
+
 function App() {
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        localStorage.setItem('uid', user.uid);
+      } else {
+        localStorage.removeItem('uid');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -57,13 +71,6 @@ function App() {
           </PrivateRoute>
         } />
 
-        {/* ✅ Updated: Handle exercise by ID with cleaner route */}
-        <Route path="/exercise/:id" element={
-          <PrivateRoute>
-            <PracticeExercise />
-          </PrivateRoute>
-        } />
-
         <Route path="/progress" element={
           <PrivateRoute>
             <ProgressTracking />
@@ -79,6 +86,20 @@ function App() {
         <Route path="/chat/:userId" element={
           <PrivateRoute>
             <ChatPage />
+          </PrivateRoute>
+        } />
+
+        {/* ✅ Assigned Exercises Page for Clients */}
+        <Route path="/my-exercises" element={
+          <PrivateRoute>
+            <ClientExercisesPage />
+          </PrivateRoute>
+        } />
+
+        {/* ✅ Firestore Exercise Viewer */}
+        <Route path="/exercise/:id" element={
+          <PrivateRoute>
+            <ExerciseView />
           </PrivateRoute>
         } />
 
