@@ -46,6 +46,18 @@ const Home = () => {
           onClick={() => navigate('/about')}
           color="from-yellow-50 to-blue-50"
         />
+        <FeatureCard
+          title="📥 Assessments"
+          desc="View therapist-assigned tasks anSignupPage.jsd goals."
+          onClick={() => navigate('/assessments')}
+          color="from-purple-100 to-yellow-100"
+        />
+        <FeatureCard
+          title="💬 Chat"
+          desc="Message your therapist or client in real time."
+          onClick={() => navigate('/chat/placeholder-id')}
+          color="from-indigo-100 to-blue-100"
+        />
       </div>
 
       {/* Extra Info Section */}

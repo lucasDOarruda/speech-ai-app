@@ -1,54 +1,159 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const exercises = [
-  { id: 1, title: 'S Sound Practice', description: 'Practice words with the "S" sound like "Snake", "Sun", "Smile".' },
-  { id: 2, title: 'R Sound Practice', description: 'Practice the tricky "R" sound using words like "Rabbit", "Red", "Round".' },
-  { id: 3, title: 'Tongue Strengthening', description: 'Improve tongue mobility with up/down and side-to-side stretches.' },
-  { id: 4, title: 'Lip Closure Drill', description: 'Enhance lip strength and closure using bilabial sounds: "Pa", "Ba", "Ma".' },
-  { id: 5, title: 'Breath Support Training', description: 'Control airflow during speech with breathing exercises and sustained vowels.' },
-  { id: 6, title: 'Ch Sound Practice', description: 'Target "Ch" sounds with words like "Chair", "Cheese", "Chalk".' },
-  { id: 7, title: 'Th Sound Clarity', description: 'Differentiate between voiced/unvoiced "Th" in "This" vs "Think".' },
-  { id: 8, title: 'Z Sound Emphasis', description: 'Use words like "Zebra", "Zoom", "Buzz" to work on the "Z" sound.' },
-  { id: 9, title: 'Sentence Repetition', description: 'Repeat structured sentences to build fluency and articulation.' },
-  { id: 10, title: 'Minimal Pairs Drill', description: 'Practice pairs like "bat" vs "pat", "cap" vs "cab" for clarity.' },
-];
-
 const ExercisesPage = () => {
-  const [query, setQuery] = useState('');
   const navigate = useNavigate();
+  const [customExercises, setCustomExercises] = useState([]);
+  const [form, setForm] = useState({ title: '', description: '', videoUrl: '', file: null });
 
-  const filteredExercises = exercises.filter(ex =>
-    ex.title.toLowerCase().includes(query.toLowerCase())
-  );
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('customExercises')) || [];
+    setCustomExercises(saved);
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'file') {
+      const fileUrl = URL.createObjectURL(files[0]);
+      setForm({ ...form, videoUrl: fileUrl, file: files[0] });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
+  };
+
+  const handleAddExercise = () => {
+    if (!form.title || !form.description || !form.videoUrl) return;
+
+    const newExercise = {
+      ...form,
+      id: Date.now(),
+      gptFeedback: `Let's practice the sound in: ${form.title}. Remember, focus on clarity!`,
+      targetWords: form.description.split(/[\s,]+/)
+    };
+
+    const updated = [...customExercises, newExercise];
+    setCustomExercises(updated);
+    localStorage.setItem('customExercises', JSON.stringify(updated));
+    setForm({ title: '', description: '', videoUrl: '', file: null });
+  };
+
+  const handleDeleteExercise = (id) => {
+    const updated = customExercises.filter(ex => ex.id !== id);
+    setCustomExercises(updated);
+    localStorage.setItem('customExercises', JSON.stringify(updated));
+  };
+
+  const formatYouTubeUrl = (url) => {
+    if (url.includes('watch?v=')) {
+      return url.replace('watch?v=', 'embed/');
+    } else if (url.includes('youtu.be')) {
+      const id = url.split('youtu.be/')[1];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+    return url;
+  };
+
+  const sSoundExercise = {
+    id: 1,
+    title: 'S Sound Practice',
+    description: 'Practice words with the "S" sound like "Snake", "Sun", "Smile".',
+    videoUrl: '/videos/s-sound-demo.mp4'
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <h2 className="text-3xl font-bold text-center text-blue-600">Speech Exercises</h2>
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <h1 className="text-3xl font-bold text-center text-blue-700 mb-8">Speech Exercises</h1>
 
-        <input
-          type="text"
-          placeholder="Search exercises..."
-          className="w-full px-4 py-2 rounded-lg border shadow-sm focus:outline-none"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Form on the Left */}
+        <div className="md:col-span-1">
+          <div className="p-6 bg-white rounded-xl border shadow space-y-4">
+            <h3 className="text-lg font-semibold text-blue-700">Add New Custom Exercise</h3>
+            <input
+              name="title"
+              placeholder="Exercise Title"
+              value={form.title}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+            <textarea
+              name="description"
+              placeholder="Exercise Description (use target words here)"
+              value={form.description}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+            <input
+              name="videoUrl"
+              placeholder="Video URL (YouTube or mp4)"
+              value={form.videoUrl}
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+            <input
+              name="file"
+              type="file"
+              accept="video/mp4"
+              onChange={handleChange}
+              className="w-full p-2 border rounded"
+            />
+            {form.videoUrl && (
+              <div className="mt-4">
+                {form.videoUrl.includes('youtube.com') || form.videoUrl.includes('youtu.be') ? (
+                  <iframe
+                    width="100%"
+                    height="240"
+                    src={formatYouTubeUrl(form.videoUrl)}
+                    title="Live preview"
+                    frameBorder="0"
+                    allowFullScreen
+                    className="rounded-xl"
+                  />
+                ) : (
+                  <video src={form.videoUrl} controls className="w-full rounded-xl">
+                    Video preview not supported.
+                  </video>
+                )}
+              </div>
+            )}
+            <button
+              onClick={handleAddExercise}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Add Exercise
+            </button>
+          </div>
+        </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {filteredExercises.map((ex) => (
+        {/* Exercises on the Right */}
+        <div className="md:col-span-2 space-y-6">
+          {/* Default S Sound Practice Card */}
+          <div
+            className="cursor-pointer p-6 rounded-xl bg-gradient-to-br from-yellow-100 to-blue-100 shadow hover:shadow-md transition"
+            onClick={() => navigate(`/exercise/${sSoundExercise.id}`)}
+          >
+            <h2 className="text-xl font-semibold text-blue-800">{sSoundExercise.title}</h2>
+            <p className="text-gray-700 mt-1">{sSoundExercise.description}</p>
+          </div>
+
+          {/* Custom Exercises */}
+          {customExercises.map((ex) => (
             <div
               key={ex.id}
-              onClick={() => navigate(`/microphone/${ex.id}`)}
-              className="cursor-pointer rounded-xl p-5 shadow-lg transition hover:scale-105 bg-gradient-to-br from-yellow-100 to-blue-100 hover:from-yellow-200 hover:to-blue-200"
+              className="p-6 rounded-xl bg-gradient-to-br from-yellow-100 to-blue-100 shadow hover:shadow-md transition relative"
             >
-              <h3 className="text-lg font-bold text-blue-800">{ex.title}</h3>
-              <p className="text-gray-700 mt-1">{ex.description}</p>
+              <div onClick={() => navigate(`/exercise/${ex.id}`)} className="cursor-pointer">
+                <h2 className="text-xl font-semibold text-blue-800">{ex.title}</h2>
+                <p className="text-gray-700 mt-1">{ex.description}</p>
+              </div>
+              <button
+                onClick={() => handleDeleteExercise(ex.id)}
+                className="absolute top-2 right-2 text-sm text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded"
+              >
+                ✕ Delete
+              </button>
             </div>
           ))}
-          {filteredExercises.length === 0 && (
-            <p className="text-center text-gray-500 col-span-2">No exercises found.</p>
-          )}
         </div>
       </div>
     </div>

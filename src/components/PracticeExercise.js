@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mic, CheckCircle, XCircle } from 'lucide-react';
 
@@ -7,29 +6,37 @@ const BASE_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:5001'
   : 'https://speech-ai-app-backend.onrender.com';
 
-const exercises = {
-  1: { title: 'S Sound Practice', targetWords: ['Snake', 'Sun', 'Smile'] },
-  2: { title: 'R Sound Practice', targetWords: ['Rabbit', 'Red', 'Round'] },
-  3: { title: 'Tongue Strengthening', targetWords: ['Up', 'Down', 'Side'] },
-  4: { title: 'Lip Closure Drill', targetWords: ['Pa', 'Ba', 'Ma'] },
-  5: { title: 'Breath Support Training', targetWords: ['Ahh', 'Oh', 'Eee'] },
-  6: { title: 'Ch Sound Practice', targetWords: ['Chair', 'Cheese', 'Chalk'] },
-  7: { title: 'Th Sound Clarity', targetWords: ['This', 'Think'] },
-  8: { title: 'Z Sound Emphasis', targetWords: ['Zebra', 'Zoom', 'Buzz'] },
-  9: { title: 'Sentence Repetition', targetWords: ['I can see the sun.'] },
-  10: { title: 'Minimal Pairs Drill', targetWords: ['Bat', 'Pat', 'Cap', 'Cab'] },
+const defaultExercises = {
+  1: {
+    title: 'S Sound Practice',
+    targetWords: ['Snake', 'Sun', 'Smile'],
+    videoUrl: '/videos/s-sound-demo.mp4',
+    gptFeedback: 'Try saying the /s/ sound clearly. Trap your tongue behind your teeth!'
+  }
 };
 
 const PracticeExercise = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const exercise = exercises[id];
 
+  const [exercise, setExercise] = useState(null);
   const [message, setMessage] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [accuracy, setAccuracy] = useState(null);
   const [recordTime, setRecordTime] = useState(0);
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    // Try to load custom exercise from localStorage first
+    const customList = JSON.parse(localStorage.getItem('customExercises')) || [];
+    const found = customList.find((ex) => ex.id.toString() === id);
+    if (found) {
+      setExercise(found);
+    } else {
+      setExercise(defaultExercises[id]);
+    }
+  }, [id]);
 
   const handleListen = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -70,14 +77,13 @@ const PracticeExercise = () => {
         const data = await res.json();
         const feedback = data.reply;
 
-        setMessage(feedback);
-
-        const correct = exercise.targetWords.some((word) => transcript.includes(word.toLowerCase()));
+        const correct = exercise?.targetWords?.some((word) => transcript.includes(word.toLowerCase()));
         const percentage = correct ? 100 : 0;
 
         setAccuracy(percentage);
+        setMessage(correct ? '✅ Great job! Correct pronunciation.' : `❌ ${exercise.gptFeedback || feedback}`);
 
-        const utter = new SpeechSynthesisUtterance(correct ? "Correct pronunciation!" : "Try again.");
+        const utter = new SpeechSynthesisUtterance(correct ? 'Correct pronunciation!' : 'Try again.');
         utter.lang = 'en-US';
         window.speechSynthesis.speak(utter);
 
@@ -106,6 +112,38 @@ const PracticeExercise = () => {
 
   if (!exercise) return <p className="text-center text-red-500 mt-10">Exercise not found.</p>;
 
+  if (showIntro && exercise.videoUrl) {
+    const isYouTube = exercise.videoUrl.includes('youtube.com') || exercise.videoUrl.includes('youtu.be');
+
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-md max-w-xl w-full text-center space-y-6">
+          <h2 className="text-2xl font-bold text-blue-600">{exercise.title}</h2>
+          <p className="text-gray-700">Watch this video before starting:</p>
+          {isYouTube ? (
+            <iframe
+              width="100%"
+              height="315"
+              src={exercise.videoUrl.replace('watch?v=', 'embed/')}
+              title="Exercise video"
+              frameBorder="0"
+              allowFullScreen
+              className="rounded-xl"
+            />
+          ) : (
+            <video controls className="mx-auto rounded-xl max-h-64">
+              <source src={exercise.videoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          )}
+          <button onClick={() => setShowIntro(false)} className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition">
+            Start Practice
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-100 min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-10">
       <div className="bg-white p-10 rounded-3xl shadow-lg w-full max-w-2xl text-center space-y-6">
@@ -113,7 +151,7 @@ const PracticeExercise = () => {
         <p className="text-gray-700 text-lg">Try saying one of the following words:</p>
 
         <div className="flex flex-wrap justify-center gap-4">
-          {exercise.targetWords.map((word, index) => (
+          {exercise.targetWords?.map((word, index) => (
             <span key={index} className="bg-yellow-100 text-yellow-800 px-5 py-2 rounded-full text-base font-medium">
               {word}
             </span>
@@ -154,7 +192,7 @@ const PracticeExercise = () => {
         )}
 
         <div>
-          <button onClick={() => navigate('/microphone')} className="text-sm text-blue-500 underline">
+          <button onClick={() => navigate('/exercises')} className="text-sm text-blue-500 underline">
             ← Back to Exercises
           </button>
         </div>

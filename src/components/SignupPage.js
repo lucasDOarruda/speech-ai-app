@@ -1,126 +1,59 @@
 import React, { useState } from 'react';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
 const SignupPage = () => {
+  const [role, setRole] = useState('client');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    setError('');
+    setLoading(true);
 
     try {
-      const usersRef = collection(db, 'users');
-      const snapshot = await getDocs(usersRef);
-
-      if (snapshot.size >= 5) {
-        setError('Signups are limited to 5 users only.');
-        return;
-      }
-
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const uid = userCredential.user.uid;
 
-      await addDoc(usersRef, {
-        uid: user.uid,
-        email: user.email,
-        createdAt: new Date()
+      await setDoc(doc(db, 'users', uid), {
+        email,
+        role
       });
 
-      navigate('/dashboard/patient');
+      navigate(`/${role}-dashboard`);
     } catch (err) {
-      setError(err.message);
+      alert('Signup error: ' + err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>🧠 Create Your Account</h2>
-        <p style={styles.subtitle}>Join Speech AI and start your journey 🗣️</p>
-        <form onSubmit={handleSignup} style={styles.form}>
-          <input
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            required
-          />
-          <input
-            type="password"
-            placeholder="Create password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            required
-          />
-          {error && <p style={styles.error}>{error}</p>}
-          <button type="submit" style={styles.button}>Sign Up</button>
-        </form>
-      </div>
+    <div className="flex justify-center items-center h-screen bg-gradient-to-br from-yellow-50 via-white to-blue-50">
+      <form onSubmit={handleSignup} className="bg-white shadow-lg p-8 rounded-2xl max-w-sm w-full">
+        <h2 className="text-xl font-bold text-center mb-6 text-blue-600">🧠 Create Account</h2>
+
+        <label className="block mb-2 text-sm font-medium text-gray-700">Register as</label>
+        <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full p-2 mb-4 border rounded">
+          <option value="client">Client</option>
+          <option value="therapist">Therapist</option>
+        </select>
+
+        <input type="email" placeholder="Email" className="w-full p-2 mb-4 border rounded" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input type="password" placeholder="Password" className="w-full p-2 mb-6 border rounded" value={password} onChange={(e) => setPassword(e.target.value)} required />
+
+        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
+          {loading ? 'Creating...' : 'Sign Up'}
+        </button>
+
+        <p className="text-sm text-center mt-4">Already registered? <a href="/login" className="text-blue-500 underline">Login</a></p>
+      </form>
     </div>
   );
-};
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: 'linear-gradient(to right, #e0f7fa, #fff)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '420px',
-    padding: '32px',
-    borderRadius: '16px',
-    boxShadow: '0 6px 20px rgba(0,0,0,0.1)',
-    backgroundColor: '#ffffff',
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: '24px',
-    marginBottom: '10px',
-    color: '#007BFF',
-  },
-  subtitle: {
-    fontSize: '16px',
-    marginBottom: '24px',
-    color: '#666',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  input: {
-    padding: '12px 16px',
-    fontSize: '16px',
-    borderRadius: '10px',
-    border: '1px solid #ccc',
-    outline: 'none',
-  },
-  button: {
-    padding: '12px 16px',
-    fontSize: '16px',
-    backgroundColor: '#007BFF',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '10px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s',
-  },
-  error: {
-    color: 'red',
-    fontSize: '14px',
-  }
 };
 
 export default SignupPage;
