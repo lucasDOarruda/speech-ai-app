@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/speech-ai-app/static/css/main.a2eafccc.css",
-    "main.js": "/speech-ai-app/static/js/main.db8a80f9.js",
+    "main.css": "/speech-ai-app/static/css/main.1af04a63.css",
+    "main.js": "/speech-ai-app/static/js/main.fc80acdb.js",
     "index.html": "/speech-ai-app/index.html",
-    "main.a2eafccc.css.map": "/speech-ai-app/static/css/main.a2eafccc.css.map",
-    "main.db8a80f9.js.map": "/speech-ai-app/static/js/main.db8a80f9.js.map"
+    "main.1af04a63.css.map": "/speech-ai-app/static/css/main.1af04a63.css.map",
+    "main.fc80acdb.js.map": "/speech-ai-app/static/js/main.fc80acdb.js.map"
   },
   "entrypoints": [
-    "static/css/main.a2eafccc.css",
-    "static/js/main.db8a80f9.js"
+    "static/css/main.1af04a63.css",
+    "static/js/main.fc80acdb.js"
   ]
 }
